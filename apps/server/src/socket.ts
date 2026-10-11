@@ -6,8 +6,8 @@ export function attachSocket(http: HttpServer) {
 const io = new Server(http, {
 cors: { origin: env.clientOrigin, credentials: true },
 });
-io.use((socket, next) => {
-const token = socket.handshake.auth?.token as string | undefined;
+io.use(function (socket, next) {
+const token = socket.handshake.auth && socket.handshake.auth.token;
 if (!token) return next(new Error("no token"));
 try {
 (socket.data as any).user = verifyToken(token) as AuthUser;
@@ -16,15 +16,15 @@ next();
 next(new Error("bad token"));
 }
 });
-io.on("connection", (socket) => {
+io.on("connection", function (socket) {
 const user = (socket.data as any).user as AuthUser;
-console.log([socket] connected uid=${user.uid} name=${user.username});
+console.log("[socket] connected uid=" + user.uid + " name=" + user.username);
 socket.emit("hello", { ok: true, user });
-socket.on("ping", (cb?: (r: unknown) => void) => {
-cb?.({ t: Date.now() });
+socket.on("ping", function (cb?: (r: unknown) => void) {
+if (cb) cb({ t: Date.now() });
 });
-socket.on("disconnect", (reason) => {
-console.log([socket] disconnect uid=${user.uid} reason=${reason});
+socket.on("disconnect", function (reason) {
+console.log("[socket] disconnect uid=" + user.uid + " reason=" + reason);
 });
 });
 return io;
